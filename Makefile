@@ -159,6 +159,21 @@ else
 	endif
 endif
 
+
+# Termux detection: if $PREFIX contains com.termux, install to $PREFIX/bin without sudo
+ifeq ($(findstring com.termux,$(PREFIX)),com.termux)
+DOTSTOW_PREFIX ?= $(PREFIX)
+INSTALL_DOTSTOW = $(DOTSTOW_PREFIX)/bin/dotstow
+INSTALL_STOW = $(DOTSTOW_PREFIX)/bin/stow
+install: $(INSTALL_DOTSTOW)
+
+$(INSTALL_DOTSTOW): dotstow.sh
+	@cp $< $@
+	@chmod +x $@
+uninstall:
+	@rm -f $(INSTALL_DOTSTOW)
+
+else
 .PHONY: install
 ifeq ($(PKG_MANAGER),brew)
 install: /usr/local/bin/dotstow \
@@ -181,6 +196,10 @@ ifeq ($(PKG_MANAGER),apt-get)
 	@sudo apt-get install -y stow
 else
 	@echo "$(ORANGE)please install the stow command$(NOCOLOR)\n$(CYAN)https://www.gnu.org/software/stow$(NOCOLOR)" >&2
+endif
+
+uninstall:
+	@sudo rm /usr/local/bin/dotstow
 endif
 
 .PHONY: uninstall
