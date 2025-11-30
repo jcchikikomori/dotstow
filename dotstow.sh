@@ -170,16 +170,14 @@ _prepare() {
         _init "$GIT_REPO"
     fi
 
-    # Immutable OSes: force install to ~/.local/bin, never /usr/local, and never use sudo
+    # Immutable OSes: do not call make install automatically; user should run make install manually if needed
     if [ "$IS_IMMUTABLE" = "1" ]; then
         DOTSTOW_PREFIX="${PREFIX:-$HOME/.local/bin}"
-        # Always override PREFIX to ~/.local/bin if not set
         if [ -z "$PREFIX" ]; then
             export PREFIX="$HOME/.local/bin"
             DOTSTOW_PREFIX="$HOME/.local/bin"
         fi
         mkdir -p "$DOTSTOW_PREFIX"
-        make install PREFIX="$DOTSTOW_PREFIX" >/dev/null 2>&1 || make install PREFIX="$DOTSTOW_PREFIX"
         # Remove conflicting dotstow in ~/.local/bin (never touch /usr/local/bin on immutable)
         if [ "$DOTSTOW_PREFIX" != "$HOME/.local/bin" ] && [ -e "$HOME/.local/bin/dotstow" ]; then
             rm -f "$HOME/.local/bin/dotstow"
