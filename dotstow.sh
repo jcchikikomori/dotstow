@@ -9,6 +9,25 @@ if [ "$DOTFILES_PATH" = "" ]; then
     export DOTFILES_PATH="$_STATE_PATH/dotfiles"
 fi
 
+# Detect Immutable OSes (by /etc/os-release or .dotfiles-distro)
+IS_IMMUTABLE=0
+IMMUTABLE_IDS="steamos silverblue bazzite kinoite ublue blendos rhcos coreos immutable"
+if [ -f "$HOME/.dotfiles-distro" ]; then
+    for id in $IMMUTABLE_IDS; do
+        if grep -qi "$id" "$HOME/.dotfiles-distro"; then
+            IS_IMMUTABLE=1
+            break
+        fi
+    done
+elif [ -f /etc/os-release ]; then
+    for id in $IMMUTABLE_IDS; do
+        if grep -qi "$id" /etc/os-release; then
+            IS_IMMUTABLE=1
+            break
+        fi
+    done
+fi
+
 export ARCH=unknown
 export FLAVOR=unknown
 export PKG_MANAGER=unknown
@@ -138,8 +157,7 @@ _prepare() {
         elif [ "$PKG_MANAGER" = "brew" ]; then
             brew install stow
         else
-            echo "please install the stow command
-    https://www.gnu.org/software/stow" >&2
+            echo "please install the stow command\n    https://www.gnu.org/software/stow" >&2
             exit 1
         fi
     fi
@@ -150,6 +168,25 @@ _prepare() {
         GIT_REPO=$(kwyzod string -d "git@gitlab.com:$USER/dotfiles" "select the git repository that contains your dotfiles")
         rm -rf $_TMP_PATH
         _init "$GIT_REPO"
+    fi
+
+    # Immutable OSes: do not call make install automatically; user should run make install manually if needed
+    if [ "$IS_IMMUTABLE" = "1" ]; then
+        DOTSTOW_PREFIX="${PREFIX:-$HOME/.local/bin}"
+        if [ -z "$PREFIX" ]; then
+            export PREFIX="$HOME/.local/bin"
+            DOTSTOW_PREFIX="$HOME/.local/bin"
+        fi
+        mkdir -p "$DOTSTOW_PREFIX"
+        # Remove conflicting dotstow in ~/.local/bin (never touch /usr/local/bin on immutable)
+        if [ "$DOTSTOW_PREFIX" != "$HOME/.local/bin" ] && [ -e "$HOME/.local/bin/dotstow" ]; then
+            rm -f "$HOME/.local/bin/dotstow"
+        fi
+        # Symlink to ~/.local/bin for convenience if not already there
+        if [ "$DOTSTOW_PREFIX" != "$HOME/.local/bin" ]; then
+            mkdir -p "$HOME/.local/bin"
+            ln -sf "$DOTSTOW_PREFIX/dotstow" "$HOME/.local/bin/dotstow"
+        fi
     fi
 }
 
