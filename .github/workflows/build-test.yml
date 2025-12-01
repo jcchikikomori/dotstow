@@ -14,5 +14,5 @@ jobs:
         mkdir -p $PREFIX
         make
     - name: Run install
-      run: make install
+      run: make uninstall && make install
 
